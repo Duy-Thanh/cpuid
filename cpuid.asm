@@ -1,6 +1,6 @@
 ; =========================================================================
-; NEKKO-OS BARE-METAL CPUID EXTRACTOR v1.0 (OPEN-SOURCE EDITION)
-; Author: Bạo Chúa Nekko (và đồng minh)
+; CPUID EXTRACTOR v1.0 (OPEN-SOURCE EDITION)
+; Author: Nekkochan (ThanhDN)
 ; Architecture: x86_64 (Windows ABI)
 ; Assembler: NASM
 ; =========================================================================
@@ -11,7 +11,7 @@ extern ExitProcess
 
 section .data
     fmt_brand db "==========================================", 10
-              db "   [NEKKO-OS] BARE-METAL CPUID EXTRACTOR  ", 10
+              db "    BARE-METAL CPUID EXTRACTOR  ", 10
               db "==========================================", 10
               db "CPU Brand: %s", 10, 10, 0
               
@@ -28,7 +28,7 @@ section .data
               db "------------------------------------------", 10
               db "=> Full Family : %d", 10
               db "=> Full Model  : %d (0x%X)", 10
-              db "=> Stepping    : %d (0x%X) <--- MANG DI SO VOI PDF INTEL!", 10, 10, 0
+              db "=> Stepping    : %d (0x%X)", 10, 10, 0
 
     fmt_ebx   db "[ADDITIONAL INFO (EBX)]: 0x%08X", 10
               db "[31:24] Local APIC ID   : %d", 10
@@ -41,12 +41,8 @@ section .text
 global main
 
 main:
-    ; Căn lề Stack 16-byte chuẩn Windows ABI (8 byte return address + 136 = 144 chia hết cho 16)
     sub rsp, 136 
 
-    ; ==========================================
-    ; 1. LẤY BRAND STRING (TÊN KHAI SINH CPU)
-    ; ==========================================
     mov eax, 0x80000002
     cpuid
     mov dword [brand_str], eax
@@ -72,15 +68,11 @@ main:
     lea rdx, [brand_str]
     call printf
 
-    ; ==========================================
-    ; 2. PHẪU THUẬT THANH GHI EAX (VERSION INFO)
-    ; ==========================================
     mov eax, 1
     cpuid
-    mov r12d, eax ; Lưu RAW EAX
-    mov r13d, ebx ; Lưu RAW EBX
+    mov r12d, eax
+    mov r13d, ebx
 
-    ; Bóc tách từng mảng bit
     mov eax, r12d
     shr eax, 28
     and eax, 0xF
@@ -120,12 +112,10 @@ main:
     and eax, 0xF
     mov r11d, eax       ; [3:0] Stepping ID
 
-    ; Tính Full Model = (Ext Model << 4) | Model Number
     mov eax, esi
     shl eax, 4
-    or eax, r10d        ; EAX bây giờ là Full Model an toàn!
+    or eax, r10d        
 
-    ; --- [FIX BUG CHÍ MẠNG] ĐẨY VÀO STACK TRƯỚC KHI ĐỤNG TỚI RCX ---
     mov [rsp+32], esi      ; Arg 4: [19:16] Ext Model
     mov [rsp+40], edi      ; Arg 5: [15:14] Rsvd
     mov [rsp+48], ebp      ; Arg 6: [13:12] Proc Type
@@ -145,9 +135,6 @@ main:
     lea rcx, [fmt_eax]     ; Arg 0: Format
     call printf
 
-    ; ==========================================
-    ; 3. PHẪU THUẬT THANH GHI EBX (ADDITIONAL INFO)
-    ; ==========================================
     mov eax, r13d
     shr eax, 24
     and eax, 0xFF
@@ -171,6 +158,5 @@ main:
     lea rcx, [fmt_ebx]
     call printf
 
-    ; TỬ HÌNH CHƯƠNG TRÌNH
     xor ecx, ecx
     call ExitProcess
